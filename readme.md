@@ -55,6 +55,7 @@ PS. I haven't consulted with Land and Spatial Development Board beforehand, so t
   \* Excluding few special series from other sources, such as WW2 era German reconnaissance flights.
 * Flight number is already somehow linked to old map sheet numbering scheme, most often [C-63 system](https://geoportaal.maaamet.ee/est/ruumiandmed/kaardilehtede-susteemid/1963-a-kaardilehtede-susteem-p229.html)
 * Sheet number is neither reliable or accurate way to locate images. Judging by data it seems that sheet number is determined by (temporary) location of an individual photo or flight or vice versa. When image has not been georeferenced, it shown to be located somewhere on the sheet, but likely nowhere near actual location.
+  * Apparently default location of image is integer value of WGS84 coordiantes it's located at (e.g 59.0, 24.0)
 * single flight can encopass muliple map sheets
 * Man-made features tend to have been built using straight lines, making them easier to spot on images.
 * As mentioned earlier, most likely places that could be located, are man-made features that have stood there for decades or centuries, such as railways or farmhouses
@@ -67,6 +68,21 @@ PS. I haven't consulted with Land and Spatial Development Board beforehand, so t
 * In theory this should be super easy and standardized problem to solve. I'm worried my laptop is very likely unable to train even single layer CNN for single epoch to even try it out.
 * That's why this project ought to include some conventional OpenCV2-based signal processing too.
 
+#### Solution?
+
+* In order to develop AI, we need to train model. As mentioned above, i don't have resources to properly train one.
+* However, I could create labelling tool.   
+    Well, there's abundance of possible tagging softwares, challenge is determining which ones are free, could potentially be locally hosted and most importantly, are for tagging whole image, not annotating objects in image
+* As i don't want to download images to local PC, and to future proof tagging data for potentially integrating with official Fotoladu, i could use sqlite local DB to store image metadata and/or tagging information about images.
+* Fotoladu doen't have much of API. For downloading images, i could use image search results.
+* Most diverse results can be queried by searching images by individual frame number, using 3-digit integer as search term.  
+    E.g GET
+	https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=432&aasta=&kaardileht=&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=611.4&h=739.2&start=0&lkcount=10  
+* Despite `lkcount=10` this link returns HTML page containing 30 image urls. Images are 'large', 512 px along longer edge, usualy around 40-50 kB. Image urls are contained withing `<img>` tags, therefore I'll need regex there.
+* Speaking of preprocessing, probably equalizing filter and high-pass should be applied before training.
+* Biggest problem with image search is that they may already include georeferenced images.
+* Due to number of images, might be worth investigating if there are other API endpoints for querying img metadata.
+
 ### Technical
 Estonia uses EPSG:3301 projection, which is XY system measuring meters from equator and Meridian.
 Fotoladu images are not square, but typical thumbnails have both sides usually around 490..530 px
@@ -74,6 +90,13 @@ For starers, it might be easier to use whole image labelling AI and later specia
 
 (AI snippet)
 The first milestone is a streamlined UI that lets archivists and volunteers quickly tag geographical features (roads, rivers, building footprints, land‑use areas, etc.) in raster imagery. In later phases, those human‑confirmed tags will be used to train and fine‑tune image‑labeling models that can auto‑suggest tags for new, un‑seen scans.
+
+#### Maa-amet fotoladu API endpoints:
+
+* GET https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=532&aasta=&kaardileht=&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=611.4&h=739.2&start=0&lkcount=10 - this contains image URL list and basic metadata.
+* GET https://fotoladu.maaamet.ee/paring_closest_arhiiv.php?B=59&L=24&lahimad=&id=261295&leier=1963 - produces list of nearby georeferenced images.
+
+I have no idea where metadata is download from.
 
 ## License
 
