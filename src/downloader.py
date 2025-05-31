@@ -158,9 +158,11 @@ class FotoladuDownloader:
 
     def download_via_search(self, params: SearchParams | int) -> None:
         """Download all thumbnails that match a search query."""
-
+        print(params)
         html = self._query_search(params)
+        print(html)
         entries = _parse_search_html(html)
+        print(entries)
         self._bulk_ingest(entries)
 
     def ingest_bbox(self, box: BBoxParams) -> None:

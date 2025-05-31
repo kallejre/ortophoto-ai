@@ -2,11 +2,10 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from db.create_db import init_db
+from db.create_db import init_db, DB_PATH
 from pathlib import Path
 from src.downloader import FotoladuDownloader, SearchParams
 
-DB_PATH = Path("db/fotoladu.sqlite.db")
 STATIC_DIR = Path("static")
 STATIC_DIR_readme = Path("readme-images")
 
