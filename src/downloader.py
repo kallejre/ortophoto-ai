@@ -165,11 +165,48 @@ class FotoladuDownloader:
         base_path: Path | str = Path("data/raw"),
         variant: str = "reduced",
     ) -> None:
+        """Create the downloader, preparing paths and DB connection."""
         self.db_path = Path(db_path)
         self.base_path = Path(base_path)
         self.variant = variant
         self.base_path.mkdir(parents=True, exist_ok=True)
+        self._conn: sqlite3.Connection | None = None
         # init_db()
+
+    # ------------------------------------------------------------------
+    # Database connection helpers
+    # ------------------------------------------------------------------
+
+    def _get_conn(self) -> sqlite3.Connection:
+        """Return an open SQLite connection, creating it if needed."""
+        if self._conn is None:
+            self._conn = sqlite3.connect(self.db_path)
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=NORMAL")
+        else:
+            try:
+                self._conn.execute("SELECT 1")
+            except sqlite3.ProgrammingError:
+                self._conn = sqlite3.connect(self.db_path)
+                self._conn.execute("PRAGMA journal_mode=WAL")
+                self._conn.execute("PRAGMA synchronous=NORMAL")
+        return self._conn
+
+    def close(self) -> None:
+        """Commit and close the SQLite connection if open."""
+        if self._conn is not None:
+            try:
+                self._conn.commit()
+            finally:
+                self._conn.close()
+                self._conn = None
+
+    def __del__(self) -> None:  # noqa: D401 - simple finalizer
+        """Ensure connection is closed on garbage collection."""
+        try:
+            self.close()
+        except Exception:
+            pass
 
     # ---------------------------------------------------------------------
     # Public high-level helpers
@@ -189,7 +226,7 @@ class FotoladuDownloader:
         print(params)
         html = self._query_search(params)
         entries = _parse_search_html(html)
-        #print(entries)
+        # print(entries)
         meta = _parse_search_meta(html)
         self._bulk_ingest(entries)
 
@@ -205,7 +242,7 @@ class FotoladuDownloader:
             html = self._query_search(params)
             entries = _parse_search_html(html)
             self._bulk_ingest(entries)
-        logging.info(f"Processed {min(total_pages, max_pages)} pages, with approx {page_size * page} records")
+        logging.info(f"Processed {min(total_pages, max_pages)} pages, with approx {page_size * min(total_pages, max_pages)} records")
 
     def download_by_kaust(self, kaust: str, *, max_pages: int = 50) -> None:
         """Download all images belonging to a Fotoladu directory."""
@@ -235,13 +272,19 @@ class FotoladuDownloader:
         return _http_get(SEARCH_URL, params=params.to_query())
 
     def _bulk_ingest(self, metas: List[Dict[str, Any]]) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        """Insert a batch of metadata rows and download images."""
+        conn = self._get_conn()
+        try:
             for meta in metas:
                 path = self._download_image(meta)
                 self._insert_db(conn, meta, path)
             conn.commit()
+        except KeyboardInterrupt:  # pragma: no cover - user triggered
+            logger.info("Interrupted. Committing partial results before exit.")
+            conn.commit()
+            self.close()
+            raise
         logger.debug(f"DL of {len(metas)} images completed")
-        
 
     # Image download ----------------------------------------------------
 

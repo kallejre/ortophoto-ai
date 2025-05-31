@@ -33,7 +33,8 @@ def main() -> None:
     logger.info(f"Found {total} folders in `{raw_dir}` to process.")
 
     # ② Iterate and download by 'kaust'
-    for idx, folder in enumerate(folders, start=1):
+    offset = 0
+    for idx, folder in enumerate(folders[offset:], start=offset+1):
         kaust_name = folder.name
         logger.info(f"[{idx}/{total}] Starting download for folder: {kaust_name!r}")
         try:
