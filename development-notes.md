@@ -91,4 +91,4 @@ The repository includes `requirements.txt` listing the basic packages needed for
 ./setup_env.sh
 ```
 
-This script creates `.venv/` and installs the packages with `pip`. No AI training libraries are included yet.
+This script creates `.ortho-venv/` and installs the packages with `pip`. No AI training libraries are included yet.

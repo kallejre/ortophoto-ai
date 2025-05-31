@@ -1,4 +1,11 @@
-data/
-db/fotoladu.sqlite.db
-fotoladu.sqlite.db
+# Python artifacts
+__pycache__/
+*.pyc
 .ortho-venv/
+
+# Local database
+/db/fotoladu.sqlite.db
+
+# Downloaded images
+/data/*.jpg
+/data/*.png
