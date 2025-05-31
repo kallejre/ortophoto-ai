@@ -82,3 +82,13 @@ project/
 * Label Studio
 * CVAT
 * Roboflow - apparently already have an account?
+
+### Environment setup
+
+The repository includes `requirements.txt` listing the basic packages needed for the downloader and API. To create a virtual environment and install them run:
+
+```bash
+./setup_env.sh
+```
+
+This script creates `.venv/` and installs the packages with `pip`. No AI training libraries are included yet.

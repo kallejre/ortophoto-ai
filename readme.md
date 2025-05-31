@@ -16,6 +16,10 @@ I first wanted to add a full disclaimer about AI-generated content, but as an LL
 
 ---
 
+## Development setup
+
+Run `./setup_env.sh` (or `setup_env.bat` on Windows) to create a Python virtual environment and install the dependencies listed in `requirements.txt`. The scripts set up `.ortho-venv/` in the project root. Placeholder image utilities live under `src/`.
+
 The purpose of this readme is to define the problems we are trying to solve and to outline the expected yak-shaving path.
 
 ### Glossary / background
