@@ -5,6 +5,17 @@ CREATE TABLE IF NOT EXISTS image (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     fotoladu_id INTEGER NOT NULL,
     path TEXT NOT NULL,
+    aasta TEXT,
+    w INTEGER,
+    h INTEGER,
+    peakaust TEXT,
+    kaust TEXT,
+    fail TEXT,
+    lend TEXT,
+    fotonr TEXT,
+    kaardileht TEXT,
+    tyyp TEXT,
+    allikas TEXT,
     UNIQUE(fotoladu_id)
 );
 

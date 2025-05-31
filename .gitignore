@@ -7,5 +7,5 @@ __pycache__/
 /db/fotoladu.sqlite.db
 
 # Downloaded images
-/data/*.jpg
-/data/*.png
+data/*/*/*/*.jpg
+data/*/*/*/*.png

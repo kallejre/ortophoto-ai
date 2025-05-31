@@ -10,7 +10,7 @@ I first wanted to add a full disclaimer about AI-generated content, but as an LL
 > Step 1 is to build a streamlined UI for tagging geographical features in the photos.
 > Add a warning that a large portion of the project is AI-generated.
 > Components: a Python web server that can load random images from the web service and store metadata in an SQLite database.
-
+>
 > **⚠️ LLM content notice**
 > Large portions of this codebase, documentation, and future model pipelines are expected to be generated **with the assistance of generative-AI tools**. Please audit and test the output carefully before deploying in production.
 
