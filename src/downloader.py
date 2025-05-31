@@ -215,7 +215,11 @@ class FotoladuDownloader:
     def download_via_search(
         self, params: SearchParams | int, *, max_pages: int = 20
     ) -> None:
-        """Download all thumbnails that match a search query (all pages).
+        """Download images for a search query and store metadata.
+
+        The downloader fetches both the main ``variant`` (usually ``reduced``)
+        and the ``thumbs`` version of each image.  Only the ``variant`` path is
+        recorded in the database.
 
         ``max_pages`` guards against runaway downloads by limiting how many
         result pages are processed.  It defaults to 20, but a smaller number
@@ -250,7 +254,12 @@ class FotoladuDownloader:
         self.download_via_search(params, max_pages=max_pages)
 
     def ingest_bbox(self, box: BBoxParams) -> None:
-        """Fetch GeoJSON metadata inside a bounding-box & pull thumbs."""
+        """Fetch GeoJSON metadata inside a bounding-box and download images.
+
+        Similar to ``download_via_search`` this will pull both the main
+        ``variant`` and the ``thumbs`` version for every returned frame, while
+        storing only the ``variant`` path in the database.
+        """
 
         gj = _http_get(BBOX_URL, params=box.to_query(), json=True)
         entries = [feat["properties"] for feat in gj.get("features", [])]
@@ -289,17 +298,26 @@ class FotoladuDownloader:
     # Image download ----------------------------------------------------
 
     def _download_image(self, meta: Dict[str, Any]) -> Path:
-        url = f"{IMAGE_URL}/{meta['peakaust']}/{meta['kaust']}/{self.variant}/{meta['fail']}"
-        dest_dir = self.base_path / meta["kaust"] / self.variant
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        dest = dest_dir / meta["fail"]
-        if not dest.exists():
-            logger.debug("Downloading " + str(dest))
-            data = requests.get(url, timeout=60).content
-            dest.write_bytes(data)
-        else:
-            logger.debug("Skipping DL " + str(dest))
-        return dest
+        """Download both 'reduced' and thumbnail variants of an image."""
+
+        def _get(variant: str) -> Path:
+            url = f"{IMAGE_URL}/{meta['peakaust']}/{meta['kaust']}/{variant}/{meta['fail']}"
+            dest_dir = self.base_path / meta["peakaust"] / meta["kaust"] / variant
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            dest = dest_dir / meta["fail"]
+            if not dest.exists():
+                logger.debug("Downloading " + str(dest))
+                data = requests.get(url, timeout=60).content
+                dest.write_bytes(data)
+            else:
+                logger.debug("Skipping DL " + str(dest))
+            return dest
+
+        # Always download the main variant and a thumbnail
+        path = _get(self.variant)
+        if self.variant != "thumbs":
+            _get("thumbs")
+        return path
 
     # SQLite insert -----------------------------------------------------
 

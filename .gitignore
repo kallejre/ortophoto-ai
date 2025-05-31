@@ -10,5 +10,7 @@ db/fotoladu.sqlite.db-shm
 db/fotoladu.sqlite.db-wal
 
 # Downloaded images
+data/*/*/*/*/*.jpg
+data/*/*/*/*/*.png
 data/*/*/*/*.jpg
 data/*/*/*/*.png
