@@ -240,7 +240,7 @@ class FotoladuDownloader:
                 path = self._download_image(meta)
                 self._insert_db(conn, meta, path)
             conn.commit()
-        logger.info(f"DL of {len(metas)} images completed")
+        logger.debug(f"DL of {len(metas)} images completed")
         
 
     # Image download ----------------------------------------------------
@@ -251,11 +251,11 @@ class FotoladuDownloader:
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / meta["fail"]
         if not dest.exists():
-            logger.info("Downloading " + str(dest))
+            logger.debug("Downloading " + str(dest))
             data = requests.get(url, timeout=60).content
             dest.write_bytes(data)
         else:
-            logger.info("Skipping DL " + str(dest))
+            logger.debug("Skipping DL " + str(dest))
         return dest
 
     # SQLite insert -----------------------------------------------------
