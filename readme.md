@@ -198,16 +198,32 @@ Panchromatic = one grey channel that covered the entire visible spectrum in film
 
 #### Maa-amet Fotoladu API endpoints
 
-* GET <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=532&aasta=&kaardileht=&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=611.4&h=739.2&start=0&lkcount=10> - this contains an image URL list and basic metadata.
-* GET <https://fotoladu.maaamet.ee/paring_closest_arhiiv.php?B=59&L=24&lahimad=&id=261295&leier=1963> - produces a list of nearby georeferenced images.
+* GET <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=532&aasta=&kaardileht=&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=611.4&h=739.2&start=0&lkcount=10> – returns a list of image URLs plus basic metadata and overall search results counter.
+* GET <https://fotoladu.maaamet.ee/paring_closest_arhiiv.php?B=59&L=24&lahimad=&id=261295&leier=1963> - returns nearby georeferenced images.
+* GET
+ <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=615&aasta=&kaardileht=O3550A&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=727.4&h=739.2&start=0&lkcount=10> – Another sample URL.
 
-I have no idea where metadata is downloaded from in Fotoladu.
+Fotoladu pulls frame metadata with a bounding-box call such as
+`paring_db_arhiiv.php?aasta=1978&a_lat=58.676&a_lng=27.107&u_lat=58.725&u_lng=27.209&m=9&arhiiv`.
+That query is triggered inside **`pildibaas()`**, which the image grid calls whenever the map moves, zooms, or a year is selected.  The response is GeoJSON: every feature bundles the frame ID, pixel size, directory parts and a **tapsus** flag that marks positional accuracy (0 = rough, 1 = unknown, 2 = exact, 3 = user-set).  When a thumbnail is clicked, the inline `onclick` fires **`kuvapiltfuncarhiiv(...)`**, hiding the search pane, re-issuing `pildibaas()` for that year (to keep the cluster layer in sync) and, finally, opening a Leaflet popup at the supplied latitude and longitude.
 
-Image endpoints:
+`kuvapiltfuncarhiiv(id, aasta, B, L, tapsus, w, h, peakaust, kaust, fail, lend, fotonr, kaardileht, tyyp, allikas)` passes all the fields your scraper needs to reinterpret the GeoJSON later: the internal **frame ID** (`id`), **year**, **lat/lon** (`B`, `L`), **tapsus** accuracy flag, **image size** (`w`, `h`), **storage paths** (`peakaust`, `kaust`, `fail`), **flight number** (`lend`), **sequential photo number** (`fotonr`), **map-sheet code** (`kaardileht`), **photo type** (`tyyp`; 0=contact B/W, 1=contact false-colour, 3=negative, 4=photoplane) and **source** (`allikas`).  In other words, the function arguments are a clean, positional mapping of the same attributes that appear as `idnr`, `w`, `h`, `tapsus`, `peakaust`, `kaust`, `fail`, etc. in the `paring_db_arhiiv.php` payload—handy for building an offline metadata table.
+
+**Useful endpoints at a glance**  
+URL's in table contain zero-width spaces `​` for typesetting.
+
+| Purpose | Example call | Notes |
+| -------- | -------- | -------- |
+| Search by frame number | `otsing_arhiiv.php?​foto_nr=532&lkcount=10` | Returns an HTML page; scrape `<img>` tags for URLs. |
+| Bounding-​box query (archive) | `paring_db_arhiiv.php?​aasta=1963&​a_lat=59.00&​a_lng=24.00​&u_lat=59.10​&u_lng=24.20&​m=9&​arhiiv` | GeoJSON with `idnr`, `w`, `h`, `tapsus`, etc. |
+| Bounding-box query (modern)  | `paring_db_cluster.php?​l=2019&​a_lat=...` | Same structure, field names slightly different. |
+| Nearest images | `paring_closest_arhiiv.php?​B=59&​L=24&​id=261295&​leier=1963` | Five closest georeferenced frames. |
+
+**Image file variants**  
 
 * <https://fotoladu.maaamet.ee/data/archive/arhiiv/ka_ngr/1983_L964_O35_25/thumbs/1983-L964-426.jpg> (100x100 px)
-* <https://fotoladu.maaamet.ee/data/archive/arhiiv/ka_ngr/1983_L964_O35_25/hd/1983-L964-426.jpg> (1920x1920 px)
 * <https://fotoladu.maaamet.ee/data/archive/arhiiv/ka_ngr/1983_L964_O35_25/reduced/1983-L964-426.jpg> (512x512 px)
+* <https://fotoladu.maaamet.ee/data/archive/arhiiv/ka_ngr/1983_L964_O35_25/hd/1983-L964-426.jpg> (1920x1920 px)
 * ![pilt](https://fotoladu.maaamet.ee/data/archive/arhiiv/ka_ngr/1983_L964_O35_25/thumbs/1983-L964-426.jpg)
 
 ## License
