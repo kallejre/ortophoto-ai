@@ -4,7 +4,8 @@ __pycache__/
 .ortho-venv/
 
 # Local database
-/db/fotoladu.sqlite.db
+db/fotoladu.sqlite.db
+db/fotoladu.sqlite.db-journal
 
 # Downloaded images
 data/*/*/*/*.jpg

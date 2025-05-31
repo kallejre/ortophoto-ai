@@ -189,7 +189,7 @@ class FotoladuDownloader:
         print(params)
         html = self._query_search(params)
         entries = _parse_search_html(html)
-        print(entries)
+        #print(entries)
         meta = _parse_search_meta(html)
         self._bulk_ingest(entries)
 
@@ -206,6 +206,11 @@ class FotoladuDownloader:
             entries = _parse_search_html(html)
             self._bulk_ingest(entries)
         logging.info(f"Processed {min(total_pages, max_pages)} pages, with approx {page_size * page} records")
+
+    def download_by_kaust(self, kaust: str, *, max_pages: int = 50) -> None:
+        """Download all images belonging to a Fotoladu directory."""
+        params = SearchParams(sailiku_nr=kaust, lkcount=60)
+        self.download_via_search(params, max_pages=max_pages)
 
     def ingest_bbox(self, box: BBoxParams) -> None:
         """Fetch GeoJSON metadata inside a bounding-box & pull thumbs."""

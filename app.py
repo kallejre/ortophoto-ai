@@ -38,13 +38,25 @@ def random_image():
 
 
 @app.post("/api/download")
-async def api_download(nr: int, background_tasks: BackgroundTasks):
+async def api_download(
+    background_tasks: BackgroundTasks,
+    nr: int | None = None,
+    kaust: str | None = None,
+):
     """
     Trigger image download in a background task.
 
     Queue a download task for every image whose *photo sequence number*
     matches `nr` (same as typing it into Fotoladu's "Foto nr" field).
     """
-    params = SearchParams(foto_nr=nr, lkcount=60)  # 60 = max per page
-    background_tasks.add_task(downloader.download_via_search, params)
-    return {"status": "started", "nr": nr}
+    pages = 50
+    if kaust:
+        background_tasks.add_task(downloader.download_by_kaust, kaust, max_pages=pages)
+        return {"status": "started", "kaust": kaust}
+
+    if nr is not None:
+        params = SearchParams(foto_nr=nr, lkcount=60)
+        background_tasks.add_task(downloader.download_via_search, params)
+        return {"status": "started", "nr": nr}
+
+    return {"error": "specify either nr or kaust"}
