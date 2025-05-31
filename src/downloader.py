@@ -52,6 +52,7 @@ IMAGE_URL = f"{BASE_URL}/data/archive/arhiiv"
 # Pydantic query models
 # ---------------------------------------------------------------------------
 
+
 class SearchParams(BaseModel):
     """Mirror parameters of ``otsing_arhiiv.php``."""
 
@@ -115,6 +116,7 @@ _KUVA_PATTERN = re.compile(r"kuvapiltfuncarhiiv\(([^)]*)\)")
 # Helper functions (kept module-level for reuse/testing)
 # ---------------------------------------------------------------------------
 
+
 def _http_get(url: str, params: Dict[str, Any] | None = None, *, json: bool = False):
     resp = requests.get(url, params=params, timeout=30)
     resp.raise_for_status()
@@ -132,9 +134,26 @@ def _parse_search_html(html: str) -> List[Dict[str, Any]]:
     return [_parse_kuva_args(m.group(1)) for m in _KUVA_PATTERN.finditer(html)]
 
 
+def _parse_search_meta(html: str) -> Dict[str, int]:
+    """Extract pagination metadata from the search HTML."""
+
+    def _int(m: Optional[re.Match]) -> int:
+        if not m:
+            return 0
+        return int(m.group(1).replace(" ", ""))
+
+    return {
+        "total": _int(re.search(r"Leitud fotosid:\s*([\d\s]+)", html)),
+        "pages": _int(re.search(r"var\s+lk_nr\s*=\s*(\d+)", html)),
+        "rows": _int(re.search(r"var\s+ridu\s*=\s*(\d+)", html)),
+        "limit": _int(re.search(r"var\s+limit\s*=\s*(\d+)", html)),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class FotoladuDownloader:
     """Stateful helper for downloading images + ingesting metadata."""
@@ -150,20 +169,43 @@ class FotoladuDownloader:
         self.base_path = Path(base_path)
         self.variant = variant
         self.base_path.mkdir(parents=True, exist_ok=True)
-        #init_db()
+        # init_db()
 
     # ---------------------------------------------------------------------
     # Public high-level helpers
     # ---------------------------------------------------------------------
 
-    def download_via_search(self, params: SearchParams | int) -> None:
-        """Download all thumbnails that match a search query."""
+    def download_via_search(
+        self, params: SearchParams | int, *, max_pages: int = 20
+    ) -> None:
+        """Download all thumbnails that match a search query (all pages).
+
+        ``max_pages`` guards against runaway downloads by limiting how many
+        result pages are processed.  It defaults to 20, but a smaller number
+        can be supplied by callers that need tighter control.
+        """
+        if isinstance(params, int):
+            params = SearchParams(foto_nr=params)
         print(params)
         html = self._query_search(params)
-        print(html)
         entries = _parse_search_html(html)
         print(entries)
+        meta = _parse_search_meta(html)
         self._bulk_ingest(entries)
+
+        page_size = meta.get("rows", 0) * meta.get("limit", 0)
+        if not page_size:
+            page_size = len(entries)
+        total_pages = meta.get("pages") or 1
+        if meta.get("total") and page_size:
+            total_pages = max(total_pages, (meta["total"] + page_size - 1) // page_size)
+
+        for page in range(1, min(total_pages, max_pages)):
+            params.start = page * page_size
+            html = self._query_search(params)
+            entries = _parse_search_html(html)
+            self._bulk_ingest(entries)
+        logging.info(f"Processed {min(total_pages, max_pages)} pages, with approx {page_size * page} records")
 
     def ingest_bbox(self, box: BBoxParams) -> None:
         """Fetch GeoJSON metadata inside a bounding-box & pull thumbs."""
@@ -193,7 +235,8 @@ class FotoladuDownloader:
                 path = self._download_image(meta)
                 self._insert_db(conn, meta, path)
             conn.commit()
-
+        logger.info(f"DL of {len(metas)} images completed")
+        
 
     # Image download ----------------------------------------------------
 
@@ -203,11 +246,11 @@ class FotoladuDownloader:
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / meta["fail"]
         if not dest.exists():
-            logger.info('Downloading '+str(dest))
+            logger.info("Downloading " + str(dest))
             data = requests.get(url, timeout=60).content
             dest.write_bytes(data)
-        else: 
-            logger.info('Skipping DL '+str(dest))
+        else:
+            logger.info("Skipping DL " + str(dest))
         return dest
 
     # SQLite insert -----------------------------------------------------
