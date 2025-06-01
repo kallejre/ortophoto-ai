@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
     <link rel="stylesheet" href="static/style.css">
 </head>
 <body class="container py-3">
     <h1>Orthophoto Labeler Prototype</h1>
     <div id="image-container" class="mb-3">
-        <img id="photo" src="" alt="Random" class="img-fluid">
+        <img id="photo-fix" src="" alt="Random" class="img-fluid photo">
+        <img id="photo-raw" src="" alt="Random" class="img-fluid photo">
     </div>
     <form id="tag-form">
         <div class="form-check">
@@ -19,6 +21,7 @@
         </div>
         <button type="submit" class="btn btn-primary mt-2">Submit</button>
     </form>
+    <div id="metadata" class="mt-3"></div>
     <script src="static/script.js"></script>
 </body>
 

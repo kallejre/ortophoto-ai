@@ -5,14 +5,16 @@ from pathlib import Path
 from db.create_db import init_db, DB_PATH
 from pathlib import Path
 from src.downloader import FotoladuDownloader, SearchParams
+from src.image_loader import ImageLoader
 
 STATIC_DIR = Path("static")
-STATIC_DIR_readme = Path("readme-images")
+DATA_DIR = Path("data")
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/readme-images", StaticFiles(directory=STATIC_DIR_readme), name="static")
+app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 downloader = None
+imgloader = None
 
 
 @app.on_event("startup")
@@ -24,6 +26,10 @@ async def startup() -> None:
     if not downloader:
         downloader = FotoladuDownloader(db_path=DB_PATH)
         print("Downloader init")
+    global imgloader
+    if not imgloader:
+        imgloader = ImageLoader(db_path=DB_PATH)
+        print("ImageLoader init")
 
 
 @app.get("/")
@@ -32,9 +38,14 @@ def read_index():
 
 
 @app.get("/api/random")
-def random_image():
+def random_image(count: int | None = 5):
     """Return placeholder random image data."""
-    return {"id": 1, "url": "/readme-images/readme-C662-1971-532-edited.png"}
+    try:
+        print(123)
+        return imgloader.random_images(n=count)
+    except Exception as err:
+        print(err)
+        raise err
 
 
 @app.post("/api/download")

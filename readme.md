@@ -37,8 +37,8 @@ The purpose of this readme is to define the problems we are trying to solve and 
 
 ## Goals
 
-* Main – Build an experimental system that can assist geo-tagging frames on Fotoladu.
-* Side – Learn a bit of computer-vision-oriented AI along the way.
+* Main - Build an experimental system that can assist geo-tagging frames on Fotoladu.
+* Side - Learn a bit of computer-vision-oriented AI along the way.
 
 Realistically, this may fail due to the considerable amount of work needed.
 
@@ -51,7 +51,7 @@ Realistically, this may fail due to the considerable amount of work needed.
     Side-note - users might over-trust that pin and place the image incorrectly.
 * Since the majority of images are taken sequentially from a plane using some kind of automation, we can relatively safely predict the location of the next image in the sequence. The gap between two consecutive images is usually 3-5 km.
     Side-note - old orthophotos include a clock in some corner. Given three images with timestamps and two with positioning, this allows us to roughly estimate distance between image sequences even when images are not in immediate vicinity. See images [272268](https://fotoladu.maaamet.ee/arhiiv=272268) and [272267](https://fotoladu.maaamet.ee/arhiiv=272267) as a great counterexample. Two images were digitised one after another, but were originally taken 44 frames apart, one at 18:42:48, the other at 19:07:23
-  ![Image taken 15th of June 1970 at 18:42:48](readme-images/readme-C602-5-1970-06-15.png)
+  ![Image taken 15th of June 1970 at 18:42:48](static/readme-images/readme-C602-5-1970-06-15.png)
 * About 99.99% of images are consistently oriented correctly north-up. Image 272268 (a.k.a the 5th image of flight C-602) above is a counterexample that prompted formalising this project.
 * We could estimate image locations even more accurately by comparing two images and detecting overlapping parts. This step is eased because usually images are taken sequentially and therefore the matching algorithm already knows which image is likely the closest match to the observed one.
 * That method may cause a risk of drifting difference between old imagery and new modern background imagery, especially when using the historic background layer which may have incorrect georeference on its own.
@@ -118,7 +118,7 @@ We could assume same film roll has consistent colour distortion over entire flig
 Maybe the first step is to colour-correct all images in a single batch by calculating their average vignette and then somehow correct them. Also, apply blur before averaging.
 Image equalisation won't work when dealing with images with very limited luminosity range, such as [pictures of sea](https://fotoladu.maaamet.ee/data/archive/arhiiv/ma_neg_ngr/324-C-413-68/reduced/1968-C413-614.jpg).
 
-![alt text](readme-images/readme-C662-1971-532.jpg) ![alt text](readme-images/readme-C662-1971-532-edited.png)
+![alt text](static/readme-images/readme-C662-1971-532.jpg) ![alt text](static/readme-images/readme-C662-1971-532-edited.png)
 
 (AI snippet)
 The first milestone is a streamlined UI that lets archivists and volunteers quickly tag geographical features (roads, rivers, building footprints, land-use areas, etc.) in raster imagery. In later phases, those human-confirmed tags will be used to train and fine-tune image-labelling models that can auto-suggest tags for new, unseen scans.
@@ -209,10 +209,10 @@ Panchromatic = one grey channel that covered the entire visible spectrum in film
 
 #### Maa-amet Fotoladu API endpoints
 
-* GET <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=532&aasta=&kaardileht=&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=611.4&h=739.2&start=0&lkcount=10> – returns a list of image URLs plus basic metadata and overall search results counter.
+* GET <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=532&aasta=&kaardileht=&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=611.4&h=739.2&start=0&lkcount=10> - returns a list of image URLs plus basic metadata and overall search results counter.
 * GET <https://fotoladu.maaamet.ee/paring_closest_arhiiv.php?B=59&L=24&lahimad=&id=261295&leier=1963> - returns nearby georeferenced images.
 * GET
- <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=615&aasta=&kaardileht=O3550A&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=727.4&h=739.2&start=0&lkcount=10> – Another sample URL.
+ <https://fotoladu.maaamet.ee/otsing_arhiiv.php?foto_nr=615&aasta=&kaardileht=O3550A&lennu_nr=&foto_tyyp=&allikas=&sailiku_nr=&w=727.4&h=739.2&start=0&lkcount=10> - Another sample URL.
 
 Fotoladu pulls frame metadata with a bounding-box call such as
 `paring_db_arhiiv.php?aasta=1978&a_lat=58.676&a_lng=27.107&u_lat=58.725&u_lng=27.209&m=9&arhiiv`.

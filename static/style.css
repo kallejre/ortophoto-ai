@@ -1,3 +1,10 @@
 body {
     background-color: #f8f9fa;
 }
+
+.photo {
+    max-height: 500px;
+    max-width: 49%;
+    width: auto;
+    height: auto;
+}
