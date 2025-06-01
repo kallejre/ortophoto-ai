@@ -4,7 +4,8 @@ body {
 
 .photo {
     max-height: 500px;
-    max-width: 49%;
     width: auto;
     height: auto;
+    min-height: 100px;
+    min-width: 100px;
 }

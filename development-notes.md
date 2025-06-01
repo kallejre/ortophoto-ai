@@ -71,6 +71,22 @@ project/
 
 ---
 
+### Possible labeling tags / classifiers:
+
+* Coastline (sea or major lake)
+* Long straight line (railway or motorway)
+* Wide long straight line (airfield)
+* Settlements - tihe(dam)asustus
+  * City - large portion of image filled
+  * Town - entire settlement would fill 50-90% of single image
+  * Village - small cluster of around 10 streets
+  * Linear settlement - Ridaküla
+  * Farm - One or more sparse clusters of residential buildings
+* River
+* Forest
+* Field
+* Industrial
+
 ### Possibly noteworthy links
 
 <https://developers.google.com/machine-learning/crash-course/exercises>

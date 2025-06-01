@@ -5,10 +5,13 @@ async function loadRandomImage() {
         return;
     }
     let data = await response.json();
-    data=data[0]
+    data = data[0]
     document.getElementById('photo-fix').src = data.url;
     if (data.url_raw) document.getElementById('photo-raw').src = data.url_raw;
     else document.getElementById('photo-raw').src = '#"'
+    document.getElementById('overlay-id').innerText = data.fotoladu_id;
+    document.getElementById('open-in-FL').href = `https://fotoladu.maaamet.ee/arhiiv=${data.fotoladu_id}`;
+
     populateTable(data);
     window.location.hash = `#${data.id}`;
 }
@@ -22,13 +25,13 @@ document.getElementById('tag-form').addEventListener('submit', async (e) => {
 window.addEventListener('load', loadRandomImage);
 
 function populateTable(data) {
- // build a small HTML table of metadata
- const md = document.getElementById('metadata');
- md.innerHTML = `
+    // build a small HTML table of metadata
+    const md = document.getElementById('metadata');
+    md.innerHTML = `
    <table class="table table-sm table-borderless mb-0">
      <tbody>
+       <tr><th scope="row">fotoladu ID</th><td>${data.fotoladu_id}</td></tr>
        <tr><th scope="row">ID</th><td>${data.id}</td></tr>
-       <tr><th scope="row">Sequence #</th><td>${data.fotoladu_id}</td></tr>
        <tr><th scope="row">Year</th><td>${data.aasta}</td></tr>
        <tr><th scope="row">Dimensions</th><td>${data.w} × ${data.h}</td></tr>
        <tr><th scope="row">Directory</th><td>${data.peakaust}/${data.kaust}</td></tr>
