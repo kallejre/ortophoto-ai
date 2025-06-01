@@ -27,21 +27,24 @@ def main() -> None:
     dl = FotoladuDownloader(db_path=DB_PATH)
     raw_dir = Path("data/raw")
 
-    # ① Gather all subdirectories under data/raw
-    folders = [f for f in raw_dir.iterdir() if f.is_dir()]
+    # ① Gather all subdirectories that are at the `kaust` level.
+    # Layout: data/raw/<peakaust>/<kaust>/
+    folders = [f for f in raw_dir.glob("*/*") if f.is_dir()]
     total = len(folders)
     logger.info(f"Found {total} folders in `{raw_dir}` to process.")
 
     # ② Iterate and download by 'kaust'
     offset = 0
-    for idx, folder in enumerate(folders[offset:], start=offset+1):
+    for idx, folder in enumerate(folders[offset:], start=offset + 1):
         kaust_name = folder.name
         logger.info(f"[{idx}/{total}] Starting download for folder: {kaust_name!r}")
         try:
             dl.download_by_kaust(kaust_name, max_pages=DEFAULT_PAGES)
             logger.info(f"[{idx}/{total}] Completed folder: {kaust_name!r}")
         except Exception as e:
-            logger.exception(f"[{idx}/{total}] Error processing folder {kaust_name!r}: {e}")
+            logger.exception(
+                f"[{idx}/{total}] Error processing folder {kaust_name!r}: {e}"
+            )
     logger.info("All directories processed. Exiting.")
 
 
