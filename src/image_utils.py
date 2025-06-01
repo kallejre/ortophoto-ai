@@ -40,7 +40,9 @@ def compute_luma_stats(img: np.ndarray) -> dict:
     }
 
 
-def _levels_map_old(channel: np.ndarray, p3: float, p50: float, p97: float) -> np.ndarray:
+def _levels_map_old(
+    channel: np.ndarray, p3: float, p50: float, p97: float
+) -> np.ndarray:
     """Return channel mapped so that p3->0, p50->128 and p97->255."""
     out = channel.astype(np.float32)
     mask_lo = out <= p50
@@ -80,28 +82,46 @@ def _apply_levels(
 
 
 def batch_tone_balance(
-    images: list[np.ndarray], *, save_avg: Path | None = None, size: int = 512
-) -> tuple[list[np.ndarray], np.ndarray]:
+    images: list[np.ndarray], *, 
+    save_avg: Path | None = None,
+    save_corrected_avg: Path | None = None,
+    size: int = 512
+) -> tuple[list[np.ndarray], np.ndarray, np.ndarray]:
     """Apply tone balance to a batch using percentiles from the blurred average.
 
     Images are resized to 512x512. The blurred average (15px sigma) is used to
     calculate the 3rd, 50th and 97th percentiles. The same mapping is then
     applied to every image in the batch. If ``save_avg`` is given, the average is
-    saved to that path.
+    saved to that path. ``save_corrected_avg`` allows saving the tone
+    corrected average as well.
     """
     """Resize images, compute average and per-channel levels adjustment."""
+  
+    def _ensure_bgr(im: np.ndarray) -> np.ndarray:
+        """Return a 3-channel BGR image regardless of input shape."""
+        if im.ndim == 2 or im.shape[2] == 1:
+            ch = im if im.ndim == 2 else im[:, :, 0]
+            return cv2.cvtColor(ch, cv2.COLOR_GRAY2BGR)
+        if im.shape[2] > 3:
+            return im[:, :, :3]
+        return im
 
+    images = [_ensure_bgr(img) for img in images]
     resized = [
         cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA) for img in images
     ]
     # blurred = [cv2.GaussianBlur(im, (0, 0), sigmaX=15, sigmaY=15) for im in resized]
     blurred = resized
+
+    #for idx, im in enumerate(blurred):
+    #    print(f"  → image#{idx} shape = {im.shape}")
+
     avg_img = np.mean(np.stack([im.astype(np.float32) for im in blurred]), axis=0)
     avg_img_u8 = avg_img.astype(np.uint8)
 
     if save_avg is not None:
         save_avg.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(save_avg), avg_img_u8)
+        cv2.imwrite(str(save_avg), avg_img_u8, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
 
     # Average the percentiles from individual images
     percs = [np.percentile(im, [3, 50, 97], axis=(0, 1)) for im in blurred]
@@ -113,7 +133,14 @@ def batch_tone_balance(
         mids = np.array([mean_percs[1]])
         highs = np.array([mean_percs[2]])
     else:
-        lows, mids, highs = mean_percs[:, 0], mean_percs[:, 1], mean_percs[:, 2]
+        lows, mids, highs = mean_percs[0], mean_percs[1], mean_percs[2]
+        # lows, mids, highs = mean_percs[:, 0], mean_percs[:, 1], mean_percs[:, 2]
 
     corrected = [_apply_levels(img, lows, mids, highs) for img in images]
-    return corrected, avg_img_u8
+    
+    corrected_avg = _apply_levels(avg_img_u8, lows, mids, highs)
+    if save_corrected_avg is not None:
+        save_corrected_avg.parent.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(save_corrected_avg), corrected_avg, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+
+    return corrected, corrected_avg, avg_img_u8

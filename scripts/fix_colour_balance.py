@@ -4,9 +4,10 @@ import logging
 from pathlib import Path
 import cv2
 
-# FIXME - Does not work for BW images.
-# may work for colour images, but for BW the averaging is too heavy.
-# Possible solution is to take average of precntiles, not precentile of averages.
+# Does work with BW and colour images.
+# May provide undesireable rsults if single flight was recorded on
+# different film rolls. (Meaning there's varying colour/brightnes distortion)
+# Current solution is to take average of precntiles, not precentile of averages.
 
 # Add project root to sys.path to make imports work
 # This is temporary change.
@@ -40,28 +41,36 @@ def _kaust_folders(base: Path) -> list[Path]:
 
 def process_kaust(path: Path) -> None:
     imgs = []
-    files = sorted((path / "reduced").glob("*.jpg"))
+    files = sorted((path / VARIANT).glob("*.jpg"))
     for f in files:
-        img = cv2.imread(str(f), cv2.IMREAD_UNCHANGED)
+        img = cv2.imread(str(f), cv2.IMREAD_COLOR_BGR)
         if img is not None:
             imgs.append(img)
     if not imgs:
-        logging.info(f"No images found in {(path / "reduced")}")
+        logging.info(f"No images found in {(path / VARIANT)}")
         return
 
     avg_path = OUT_DIR / path.parent.name / path.name / "average.jpg"
+    corrected_avg_path = OUT_DIR / path.parent.name / path.name / "average_corrected.jpg"
     out_dir = OUT_DIR / path.parent.name / path.name / VARIANT
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    balanced, avg = batch_tone_balance(imgs, save_avg=avg_path)
+    balanced, corrected_avg, avg = batch_tone_balance(
+        imgs,
+        save_avg=avg_path,
+        save_corrected_avg=corrected_avg_path,
+    )
     for im, f in zip(balanced, files):
-        cv2.imwrite(str(out_dir / f.name), im)
+        cv2.imwrite(str(out_dir / f.name), im, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
 
 
-def main() -> None:
+def main(resume_from: int = 1) -> None:
     folders = _kaust_folders(RAW_DIR)
     for idx, kaust in enumerate(folders, start=1):
-        logger.info(f"[{idx}/{len(folders)}] Processing {kaust}")
+        if idx < resume_from:
+            continue
+        file_count = len( sorted((kaust / VARIANT).glob("*.jpg")))
+        logger.info(f"[{idx}/{len(folders)}] Processing {kaust} - {file_count} files")
         process_kaust(kaust)
     logger.info("Done")
 
