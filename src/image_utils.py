@@ -49,23 +49,39 @@ def _levels_map_old(channel: np.ndarray, p3: float, p50: float, p97: float) -> n
     out[mask_hi] = 128.0 + (out[mask_hi] - p50) * (127.0 / max(p97 - p50, 1e-5))
     return np.clip(out, 0, 255).astype(np.uint8)
 
-def _levels_map(img: np.ndarray, p3, p50, p97) -> np.ndarray:
-    """Piecewise linear tone mapping helper."""
-    if img.ndim == 2:
-        xp = np.array([0, p3, p50, p97, 255], dtype=np.float32)
-        fp = np.array([0, 0, 128, 255, 255], dtype=np.float32)
-        mapped = np.interp(img, xp, fp)
-        return mapped.astype(np.uint8)
 
-    out = []
-    for c in range(img.shape[2]):
-        xp = np.array([0, p3[c], p50[c], p97[c], 255], dtype=np.float32)
-        fp = np.array([0, 0, 128, 255, 255], dtype=np.float32)
-        out.append(np.interp(img[:, :, c], xp, fp))
-    return np.stack(out, axis=2).astype(np.uint8)
+def _levels_map(ch: np.ndarray, p3: float, p50: float, p97: float) -> np.ndarray:
+    """
+    Piecewise‐linear tone mapping (levels) for a single channel array.
+    Uses percentile breakpoints (p3, p50, p97).
+    """
+    xp = np.array([0.0, p3, p50, p97, 255.0], dtype=np.float32)
+    fp = np.array([0.0, 0.0, 128.0, 255.0, 255.0], dtype=np.float32)
+
+    # np.interp will handle all bounding and other issues.
+    mapped = np.interp(ch.astype(np.float32), xp, fp)
+    return mapped.astype(np.uint8)
 
 
-def batch_tone_balance(images: list[np.ndarray], *, save_avg: Path | None = None) -> list[np.ndarray]:
+def _apply_levels(
+    img: np.ndarray, lows: np.ndarray, mids: np.ndarray, highs: np.ndarray
+) -> np.ndarray:
+    """Apply levels mapping per channel."""
+    if img.ndim == 2 or img.shape[2] == 1:
+        ch = img if img.ndim == 2 else img[:, :, 0]
+        return _levels_map(ch, float(lows[0]), float(mids[0]), float(highs[0]))
+
+    chans = []
+    for i in range(img.shape[2]):
+        chans.append(
+            _levels_map(img[:, :, i], float(lows[i]), float(mids[i]), float(highs[i]))
+        )
+    return cv2.merge(chans)
+
+
+def batch_tone_balance(
+    images: list[np.ndarray], *, save_avg: Path | None = None, size: int = 512
+) -> tuple[list[np.ndarray], np.ndarray]:
     """Apply tone balance to a batch using percentiles from the blurred average.
 
     Images are resized to 512x512. The blurred average (15px sigma) is used to
@@ -73,28 +89,31 @@ def batch_tone_balance(images: list[np.ndarray], *, save_avg: Path | None = None
     applied to every image in the batch. If ``save_avg`` is given, the average is
     saved to that path.
     """
-    if not images:
-        return []
+    """Resize images, compute average and per-channel levels adjustment."""
 
-    resized = [cv2.resize(im, (512, 512), interpolation=cv2.INTER_AREA) for im in images]
-    blurred = [cv2.GaussianBlur(im, (0, 0), sigmaX=15, sigmaY=15) for im in resized]
-    avg = np.mean(np.stack([b.astype(np.float32) for b in blurred]), axis=0)
+    resized = [
+        cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA) for img in images
+    ]
+    # blurred = [cv2.GaussianBlur(im, (0, 0), sigmaX=15, sigmaY=15) for im in resized]
+    blurred = resized
+    avg_img = np.mean(np.stack([im.astype(np.float32) for im in blurred]), axis=0)
+    avg_img_u8 = avg_img.astype(np.uint8)
 
     if save_avg is not None:
         save_avg.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(save_avg), avg.astype(np.uint8))
+        cv2.imwrite(str(save_avg), avg_img_u8)
 
-    if avg.ndim == 2:  # greyscale
-        params = [tuple(np.percentile(avg, [3, 50, 97]))]
+    # Average the percentiles from individual images
+    percs = [np.percentile(im, [3, 50, 97], axis=(0, 1)) for im in blurred]
+    percs = np.stack(percs, axis=0)
+    mean_percs = percs.mean(axis=0)
+
+    if mean_percs.ndim == 1:
+        lows = np.array([mean_percs[0]])
+        mids = np.array([mean_percs[1]])
+        highs = np.array([mean_percs[2]])
     else:
-        params = [tuple(np.percentile(avg[:, :, c], [3, 50, 97])) for c in range(3)]
+        lows, mids, highs = mean_percs[:, 0], mean_percs[:, 1], mean_percs[:, 2]
 
-    balanced = []
-    for img in images:
-        if img.ndim == 2:
-            p = params[0]
-            balanced.append(_levels_map(img, *p))
-            continue
-        channels = [_levels_map(img[:, :, i], *params[i]) for i in range(3)]
-        balanced.append(cv2.merge(channels))
-    return balanced
+    corrected = [_apply_levels(img, lows, mids, highs) for img in images]
+    return corrected, avg_img_u8
