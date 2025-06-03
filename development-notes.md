@@ -71,7 +71,7 @@ project/
 
 ---
 
-### Possible labeling tags / classifiers:
+### Possible labeling tags / classifiers
 
 * Coastline (sea or major lake)
 * Long straight line (railway or motorway)

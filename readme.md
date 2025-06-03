@@ -15,6 +15,15 @@ I first wanted to add a full disclaimer about AI-generated content, but as an LL
 > Large portions of this codebase, documentation, and future model pipelines are expected to be generated **with the assistance of generative-AI tools**. Please audit and test the output carefully before deploying in production.
 
 ---
+Example, how website looks like.
+![Current view of website](static/readme-images/readme-website-sample.png)
+
+Features as of 2025-06-02:
+
+* Image downloader configured to download up to 2000 images per search results
+* Sqlite image metadata database
+* Batch-based image colour correction script - tries to automatically balance lightness of each individual colour channel
+* Webpage to show original and tweaked images side-by-side
 
 ## Development setup
 
